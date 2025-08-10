@@ -1,5 +1,10 @@
 # SkipList
 
+[![CI](https://github.com/marsevilspirit/skiplist/actions/workflows/ci.yml/badge.svg)](https://github.com/marsevilspirit/skiplist/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![C++](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://en.cppreference.com/w/cpp/17)
+[![CMake](https://img.shields.io/badge/CMake-3.16+-blue.svg)](https://cmake.org/)
+
 一个高效的跳表(Skip List)数据结构的C++实现，支持快速的插入、删除和搜索操作。
 
 ## ✨ 特性

@@ -1,0 +1,133 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: Release ${{ github.ref }}
+        body: |
+          ## Changes in this Release
+          
+          - See [CHANGELOG.md](CHANGELOG.md) for details
+          
+          ## Installation
+          
+          ```bash
+          git clone https://github.com/marsevilspirit/skiplist.git
+          cd skiplist
+          mkdir build && cd build
+          cmake ..
+          make -j$(nproc)
+          ```
+          
+          ## Testing
+          
+          ```bash
+          # Run tests
+          ctest --verbose
+          
+          # Run example
+          ./skiplist_example
+          ```
+        draft: false
+        prerelease: false
+
+  build-artifacts:
+    name: Build ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    needs: create-release
+    strategy:
+      matrix:
+        config:
+          - {
+              name: "Linux",
+              os: ubuntu-22.04,
+              artifact: "skiplist-linux.tar.gz"
+            }
+          - {
+              name: "macOS",
+              os: macos-latest,
+              artifact: "skiplist-macos.tar.gz"
+            }
+          - {
+              name: "Windows",
+              os: windows-latest,
+              artifact: "skiplist-windows.zip"
+            }
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.16'
+
+    - name: Configure
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=Release
+
+    - name: Build
+      run: cmake --build build --config Release --parallel
+
+    - name: Test
+      working-directory: build
+      run: ctest --output-on-failure --build-config Release
+
+    - name: Package (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        mkdir -p package/skiplist
+        cp -r src/ package/skiplist/
+        cp -r examples/ package/skiplist/
+        cp -r tests/ package/skiplist/
+        cp CMakeLists.txt README.md BUILD.md package/skiplist/
+        cp build/skiplist_example package/skiplist/
+        cp build/skiplist_tests package/skiplist/
+        cd package
+        tar -czf ${{ matrix.config.artifact }} skiplist/
+
+    - name: Package (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        mkdir package\skiplist
+        xcopy src package\skiplist\src\ /E /I
+        xcopy examples package\skiplist\examples\ /E /I
+        xcopy tests package\skiplist\tests\ /E /I
+        copy CMakeLists.txt package\skiplist\
+        copy README.md package\skiplist\
+        copy BUILD.md package\skiplist\
+        copy build\Release\skiplist_example.exe package\skiplist\
+        copy build\Release\skiplist_tests.exe package\skiplist\
+        cd package
+        powershell Compress-Archive -Path skiplist -DestinationPath ${{ matrix.config.artifact }}
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ needs.create-release.outputs.upload_url }}
+        asset_path: ./package/${{ matrix.config.artifact }}
+        asset_name: ${{ matrix.config.artifact }}
+        asset_content_type: application/octet-stream

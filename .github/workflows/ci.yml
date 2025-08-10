@@ -1,0 +1,185 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  build-and-test:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+              name: "Ubuntu 22.04 GCC",
+              os: ubuntu-22.04,
+              cc: "gcc",
+              cxx: "g++",
+              build_type: "Release"
+            }
+          - {
+              name: "Ubuntu 22.04 Clang",
+              os: ubuntu-22.04,
+              cc: "clang",
+              cxx: "clang++",
+              build_type: "Release"
+            }
+          - {
+              name: "Ubuntu 22.04 Debug",
+              os: ubuntu-22.04,
+              cc: "gcc",
+              cxx: "g++",
+              build_type: "Debug"
+            }
+          - {
+              name: "macOS Latest",
+              os: macos-latest,
+              cc: "clang",
+              cxx: "clang++",
+              build_type: "Release"
+            }
+          - {
+              name: "Windows Latest MSVC",
+              os: windows-latest,
+              cc: "cl",
+              cxx: "cl",
+              build_type: "Release"
+            }
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.16'
+
+    - name: Setup Ninja (Linux/macOS)
+      if: runner.os != 'Windows'
+      uses: ashutoshvarma/setup-ninja@master
+
+    - name: Setup MSVC (Windows)
+      if: runner.os == 'Windows'
+      uses: microsoft/setup-msbuild@v1.3
+
+    - name: Configure CMake (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
+          -DCMAKE_C_COMPILER=${{ matrix.config.cc }} \
+          -DCMAKE_CXX_COMPILER=${{ matrix.config.cxx }} \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -G Ninja
+
+    - name: Configure CMake (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+
+    - name: Build
+      run: cmake --build build --config ${{ matrix.config.build_type }} --parallel
+
+    - name: Test
+      working-directory: build
+      run: ctest --output-on-failure --parallel --build-config ${{ matrix.config.build_type }}
+
+    - name: Run Example
+      working-directory: build
+      run: |
+        if [ "$RUNNER_OS" == "Windows" ]; then
+          ./${{ matrix.config.build_type }}/skiplist_example.exe
+        else
+          ./skiplist_example
+        fi
+      shell: bash
+
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install clang-format
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format
+
+    - name: Check code formatting
+      run: |
+        find src/ examples/ tests/ -name "*.hpp" -o -name "*.cpp" | \
+        xargs clang-format --dry-run --Werror
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.16'
+
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@master
+
+    - name: Configure with warnings as errors
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="-Wall -Wextra -Werror" \
+          -G Ninja
+
+    - name: Build with strict warnings
+      run: cmake --build build --parallel
+
+  coverage:
+    name: Code Coverage
+    runs-on: ubuntu-22.04
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y lcov
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.16'
+
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@master
+
+    - name: Configure with coverage
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DCMAKE_CXX_FLAGS="--coverage -g -O0" \
+          -G Ninja
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Run tests
+      working-directory: build
+      run: ctest --output-on-failure
+
+    - name: Generate coverage report
+      run: |
+        lcov --capture --directory build --output-file coverage.info
+        lcov --remove coverage.info '/usr/*' '*/tests/*' '*/build/*' --output-file coverage.info
+        lcov --list coverage.info
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.info
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false

@@ -1,0 +1,51 @@
+name: Quick Check
+
+on:
+  push:
+    branches-ignore: [ main ]
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  quick-build:
+    name: Quick Build & Test
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup CMake
+      uses: jwlawson/actions-setup-cmake@v1.14
+      with:
+        cmake-version: '3.16'
+
+    - name: Setup Ninja
+      uses: ashutoshvarma/setup-ninja@master
+
+    - name: Configure
+      run: |
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=Release \
+          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -G Ninja
+
+    - name: Build
+      run: cmake --build build --parallel
+
+    - name: Test
+      working-directory: build
+      run: ctest --output-on-failure --parallel
+
+    - name: Check formatting
+      run: |
+        sudo apt-get update && sudo apt-get install -y clang-format
+        ./format.sh
+        if [ -n "$(git diff --name-only)" ]; then
+          echo "❌ Code formatting issues found!"
+          echo "Please run './format.sh' and commit the changes."
+          git diff
+          exit 1
+        else
+          echo "✅ Code formatting is correct!"
+        fi
