@@ -75,6 +75,51 @@ void SkipList<K, V>::insertElement(K key, V value) {
 }
 
 template<typename K, typename V>
+void SkipList<K, V>::deleteElement(K key) {
+    // 寻找各层的前驱节点
+    std::vector<Node<K, V>*> update(maxLevel + 1, nullptr);
+    Node<K, V>* current = header;
+
+    // 从当前最高层开始往下找
+    for (int i = currentLevel; i >= 0; i--) {
+        while (current->forward[i] != nullptr && current->forward[i]->key < key) {
+            current = current->forward[i];
+        }
+        update[i] = current;
+    }
+
+    // 移动到第 0 层，定位到可能的目标节点
+    current = current->forward[0];
+
+    // 检查节点是否存在，如果存在则执行删除
+    if (current != nullptr && current->key == key) {
+        // 从最底层开始，逐层解除链接
+        for (int i = 0; i <= currentLevel; i++) {
+            // 如果在第 i 层，前驱节点的下一个节点不是要删的节点，
+            // 说明在更高层，这个节点已经不存在了，可以直接停止
+            if (update[i]->forward[i] != current) {
+                break;
+            }
+            // 修改指针，跳过 current 节点
+            update[i]->forward[i] = current->forward[i];
+        }
+
+        // 释放被删除节点的内存
+        delete current;
+
+        // 清理工作：更新 currentLevel
+        // 检查删除后，最高层是否变空了
+        while (currentLevel > 0 && header->forward[currentLevel] == nullptr) {
+            currentLevel--;
+        }
+
+        std::cout << "Successfully deleted key " << key << std::endl;
+    } else {
+        std::cout << "Key " << key << " not found. Deletion failed." << std::endl;
+    }
+}
+
+template<typename K, typename V>
 Node<K, V>* SkipList<K, V>:: searchElement(K key) {
 	Node<K, V>* current = header;
 
