@@ -68,11 +68,6 @@ jobs:
               os: macos-latest,
               artifact: "skiplist-macos.tar.gz"
             }
-          - {
-              name: "Windows",
-              os: windows-latest,
-              artifact: "skiplist-windows.zip"
-            }
 
     steps:
     - name: Checkout
@@ -94,19 +89,9 @@ jobs:
       run: |
         brew install googletest
 
-    - name: Setup MSVC Environment (Windows)
-      if: runner.os == 'Windows'
-      uses: ilammy/msvc-dev-cmd@v1
-
-    - name: Configure (Linux/macOS)
-      if: runner.os != 'Windows'
+    - name: Configure
       run: |
         cmake -B build -DCMAKE_BUILD_TYPE=Release
-
-    - name: Configure (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=Release -A x64
 
     - name: Build
       run: cmake --build build --config Release --parallel
@@ -115,8 +100,7 @@ jobs:
       working-directory: build
       run: ctest --output-on-failure --build-config Release
 
-    - name: Package (Linux/macOS)
-      if: runner.os != 'Windows'
+    - name: Package
       run: |
         mkdir -p package/skiplist
         cp -r src/ package/skiplist/
@@ -127,21 +111,6 @@ jobs:
         cp build/skiplist_tests package/skiplist/
         cd package
         tar -czf ${{ matrix.config.artifact }} skiplist/
-
-    - name: Package (Windows)
-      if: runner.os == 'Windows'
-      run: |
-        mkdir package\skiplist
-        xcopy src package\skiplist\src\ /E /I
-        xcopy examples package\skiplist\examples\ /E /I
-        xcopy tests package\skiplist\tests\ /E /I
-        copy CMakeLists.txt package\skiplist\
-        copy README.md package\skiplist\
-        copy BUILD.md package\skiplist\
-        copy build\Release\skiplist_example.exe package\skiplist\
-        copy build\Release\skiplist_tests.exe package\skiplist\
-        cd package
-        powershell Compress-Archive -Path skiplist -DestinationPath ${{ matrix.config.artifact }}
 
     - name: Upload Release Asset
       uses: actions/upload-release-asset@v1

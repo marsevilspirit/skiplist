@@ -44,7 +44,11 @@ jobs:
 
     - name: Check formatting
       run: |
-        sudo apt-get update && sudo apt-get install -y clang-format
+        sudo apt-get update
+        wget -O - https://apt.llvm.org/llvm-snapshot.gpg.key | sudo apt-key add -
+        sudo add-apt-repository "deb http://apt.llvm.org/jammy/ llvm-toolchain-jammy-20 main"
+        sudo apt-get update
+        sudo apt-get install -y clang-format-20
         ./format.sh
         if [ -n "$(git diff --name-only)" ]; then
           echo "❌ Code formatting issues found!"
