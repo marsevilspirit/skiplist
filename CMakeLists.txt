@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(SkipList 
+project(SkipList
     VERSION 1.0.0
     DESCRIPTION "A C++ implementation of Skip List data structure"
     LANGUAGES CXX)
@@ -41,7 +41,7 @@ option(BUILD_TESTS "Build tests" ON)
 if(BUILD_TESTS)
     # 查找或下载 Google Test
     find_package(GTest QUIET)
-    
+
     if(NOT GTest_FOUND)
         include(FetchContent)
         FetchContent_Declare(
@@ -54,11 +54,11 @@ if(BUILD_TESTS)
     endif()
 
     enable_testing()
-    
+
     # 测试可执行文件
     add_executable(skiplist_tests tests/test_skiplist.cpp)
     target_link_libraries(skiplist_tests skiplist gtest_main gtest pthread)
-    
+
     # 添加测试
     include(GoogleTest)
     gtest_discover_tests(skiplist_tests)
