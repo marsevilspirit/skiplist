@@ -63,6 +63,17 @@ jobs:
       if: runner.os != 'Windows'
       uses: ashutoshvarma/setup-ninja@master
 
+    - name: Install Google Test (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libgtest-dev libgmock-dev
+
+    - name: Install Google Test (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        brew install googletest
+
     - name: Setup MSVC (Windows)
       if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.3
@@ -107,10 +118,10 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    - name: Install clang-format
+    - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang-format
+        sudo apt-get install -y clang-format libgtest-dev libgmock-dev
 
     - name: Check code formatting
       run: |
@@ -146,7 +157,7 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y lcov
+        sudo apt-get install -y lcov libgtest-dev libgmock-dev
 
     - name: Setup CMake
       uses: jwlawson/actions-setup-cmake@v1.14
