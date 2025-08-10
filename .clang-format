@@ -1,0 +1,90 @@
+---
+# 基于LLVM风格，但使用tab缩进
+BasedOnStyle: LLVM
+
+# 缩进设置
+UseTab: Always
+TabWidth: 4
+IndentWidth: 4
+
+# 访问修饰符缩进
+AccessModifierOffset: -4
+
+# 大括号换行风格
+BreakBeforeBraces: Attach
+
+# 函数参数对齐
+AlignAfterOpenBracket: Align
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignOperands: true
+AlignTrailingComments: true
+
+# 换行设置
+AllowShortBlocksOnASingleLine: false
+AllowShortCaseLabelsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+
+# 列宽限制
+ColumnLimit: 100
+
+# 构造函数初始化列表
+ConstructorInitializerAllOnOneLineOrOnePerLine: true
+ConstructorInitializerIndentWidth: 4
+
+# 指针和引用对齐
+PointerAlignment: Left
+ReferenceAlignment: Left
+
+# 空格设置
+SpaceAfterCStyleCast: false
+SpaceAfterTemplateKeyword: true
+SpaceBeforeAssignmentOperators: true
+SpaceBeforeParens: ControlStatements
+SpaceInEmptyParentheses: false
+SpacesBeforeTrailingComments: 1
+SpacesInAngles: false
+SpacesInContainerLiterals: false
+SpacesInCStyleCastParentheses: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+
+# 模板和宏
+AlwaysBreakTemplateDeclarations: Yes
+
+# 排序
+SortIncludes: true
+SortUsingDeclarations: true
+
+# 其他设置
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+ReflowComments: true
+Standard: c++17
+
+# 命名空间缩进
+NamespaceIndentation: None
+
+# 预处理器指令缩进
+IndentPPDirectives: None
+
+# 二进制操作符换行
+BreakBeforeBinaryOperators: None
+
+# 三元操作符换行
+BreakBeforeTernaryOperators: true
+
+# 字符串字面量换行
+BreakStringLiterals: true
+
+# 包含文件排序
+IncludeBlocks: Regroup
+IncludeCategories:
+  - Regex:           '^<.*\.h>'
+    Priority:        1
+  - Regex:           '^<.*'
+    Priority:        2
+  - Regex:           '.*'
+    Priority:        3

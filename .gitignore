@@ -128,4 +128,7 @@ gmon.out
 *.rar
 *.7z
 
+# clang-format临时文件
+.clang-format-*
+
 .cache
