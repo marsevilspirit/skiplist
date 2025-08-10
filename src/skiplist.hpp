@@ -35,8 +35,8 @@ public:
 
 template<typename K, typename V>
 SkipList<K,V>::SkipList(int maxLvl, float prob) : maxLevel(maxLvl), p(prob), currentLevel(0) {
-	K dummyKey;
-	V dummyValue;
+	K dummyKey{};
+	V dummyValue{};
 	header = new Node<K, V>(dummyKey, dummyValue, maxLevel);
 }
 
