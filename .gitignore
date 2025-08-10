@@ -127,3 +127,5 @@ gmon.out
 *.zip
 *.rar
 *.7z
+
+.cache
