@@ -45,8 +45,6 @@ jobs:
           - {
               name: "Windows Latest MSVC",
               os: windows-latest,
-              cc: "cl",
-              cxx: "cl",
               build_type: "Release"
             }
 
@@ -78,6 +76,10 @@ jobs:
       if: runner.os == 'Windows'
       uses: microsoft/setup-msbuild@v1.3
 
+    - name: Setup MSVC Environment (Windows)
+      if: runner.os == 'Windows'
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: Configure CMake (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
@@ -91,7 +93,9 @@ jobs:
     - name: Configure CMake (Windows)
       if: runner.os == 'Windows'
       run: |
-        cmake -B build -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }}
+        cmake -B build \
+          -DCMAKE_BUILD_TYPE=${{ matrix.config.build_type }} \
+          -A x64
 
     - name: Build
       run: cmake --build build --config ${{ matrix.config.build_type }} --parallel
@@ -100,15 +104,15 @@ jobs:
       working-directory: build
       run: ctest --output-on-failure --parallel --build-config ${{ matrix.config.build_type }}
 
-    - name: Run Example
+    - name: Run Example (Linux/macOS)
+      if: runner.os != 'Windows'
       working-directory: build
-      run: |
-        if [ "$RUNNER_OS" == "Windows" ]; then
-          ./${{ matrix.config.build_type }}/skiplist_example.exe
-        else
-          ./skiplist_example
-        fi
-      shell: bash
+      run: ./skiplist_example
+
+    - name: Run Example (Windows)
+      if: runner.os == 'Windows'
+      working-directory: build
+      run: .\${{ matrix.config.build_type }}\skiplist_example.exe
 
   code-quality:
     name: Code Quality Checks
