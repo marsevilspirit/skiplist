@@ -1,5 +1,7 @@
 #include <vector>
 
+namespace skiplist {
+
 template<typename K, typename V>
 class Node {
 public:
@@ -9,3 +11,5 @@ public:
 
 	Node(K k, V v, int level) : key(k), value(v), forward(level+1, nullptr){}
 };
+
+}
