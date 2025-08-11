@@ -1,11 +1,11 @@
 #ifndef SKIPLIST_HPP
 #define SKIPLIST_HPP
 
+#include <atomic>
 #include <cstdlib>
 #include <iostream>
 #include <mutex>
 #include <shared_mutex>
-#include <atomic>
 
 #include "node.hpp"
 
@@ -16,9 +16,9 @@ class SkipList {
 private:
 	int maxLevel;
 	float p;
-	std::atomic<int> currentLevel;  // 使用原子操作
+	std::atomic<int> currentLevel; // 使用原子操作
 	Node<K, V>* header;
-	mutable std::shared_mutex rw_mutex;  // 读写锁，保护整个数据结构
+	mutable std::shared_mutex rw_mutex; // 读写锁，保护整个数据结构
 
 public:
 	SkipList(int maxLvl, float prob = 0.5);
@@ -35,7 +35,7 @@ public:
 	void remove(K key);
 
 	void display();
-	
+
 	// 新增：获取skiplist大小的方法
 	int size() const;
 };
@@ -74,8 +74,8 @@ Node<K, V>* SkipList<K, V>::createNode(K key, V value, int level) {
 
 template <typename K, typename V>
 void SkipList<K, V>::insert(K key, V value) {
-	std::unique_lock<std::shared_mutex> lock(rw_mutex);  // 写锁，独占访问
-	
+	std::unique_lock<std::shared_mutex> lock(rw_mutex); // 写锁，独占访问
+
 	std::vector<Node<K, V>*> update(maxLevel + 1, nullptr);
 	Node<K, V>* current = header;
 
@@ -115,8 +115,8 @@ void SkipList<K, V>::insert(K key, V value) {
 
 template <typename K, typename V>
 void SkipList<K, V>::remove(K key) {
-	std::unique_lock<std::shared_mutex> lock(rw_mutex);  // 写锁，独占访问
-	
+	std::unique_lock<std::shared_mutex> lock(rw_mutex); // 写锁，独占访问
+
 	// 寻找各层的前驱节点
 	std::vector<Node<K, V>*> update(maxLevel + 1, nullptr);
 	Node<K, V>* current = header;
@@ -162,8 +162,8 @@ void SkipList<K, V>::remove(K key) {
 
 template <typename K, typename V>
 Node<K, V>* SkipList<K, V>::search(K key) {
-	std::shared_lock<std::shared_mutex> lock(rw_mutex);  // 读锁，允许多个线程同时读取
-	
+	std::shared_lock<std::shared_mutex> lock(rw_mutex); // 读锁，允许多个线程同时读取
+
 	Node<K, V>* current = header;
 
 	for (int i = currentLevel.load(); i >= 0; i--) {
@@ -188,8 +188,8 @@ Node<K, V>* SkipList<K, V>::search(K key) {
 // 显示跳表结构
 template <typename K, typename V>
 void SkipList<K, V>::display() {
-	std::shared_lock<std::shared_mutex> lock(rw_mutex);  // 读锁，允许多个线程同时读取
-	
+	std::shared_lock<std::shared_mutex> lock(rw_mutex); // 读锁，允许多个线程同时读取
+
 	std::cout << "\n***** Skip List *****\n";
 	for (int i = currentLevel.load(); i >= 0; i--) {
 		Node<K, V>* node = header->forward[i];
@@ -204,16 +204,16 @@ void SkipList<K, V>::display() {
 
 template <typename K, typename V>
 int SkipList<K, V>::size() const {
-	std::shared_lock<std::shared_mutex> lock(rw_mutex);  // 读锁
-	
+	std::shared_lock<std::shared_mutex> lock(rw_mutex); // 读锁
+
 	int count = 0;
 	Node<K, V>* current = header->forward[0];
-	
+
 	while (current != nullptr) {
 		count++;
 		current = current->forward[0];
 	}
-	
+
 	return count;
 }
 

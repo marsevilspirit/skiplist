@@ -1,8 +1,9 @@
 #include <gtest/gtest.h>
-#include <thread>
-#include <vector>
+
 #include <atomic>
 #include <random>
+#include <thread>
+#include <vector>
 
 #include "skiplist.hpp"
 
@@ -172,7 +173,7 @@ TEST_F(ConcurrentSkipListTest, ConcurrentInsert) {
 
 	// 验证所有插入的键都存在
 	EXPECT_EQ(success_count.load(), num_threads * inserts_per_thread);
-	
+
 	// 随机检查一些键
 	for (int i = 0; i < 10; i++) {
 		int random_key = rand() % (num_threads * inserts_per_thread);
@@ -230,7 +231,8 @@ TEST_F(ConcurrentSkipListTest, ConcurrentInsertAndSearch) {
 		threads.emplace_back([this, i, operations_per_thread, &insert_count]() {
 			for (int j = 0; j < operations_per_thread; j++) {
 				int key = i * operations_per_thread + j;
-				std::string value = "insert_thread_" + std::to_string(i) + "_value_" + std::to_string(j);
+				std::string value =
+					"insert_thread_" + std::to_string(i) + "_value_" + std::to_string(j);
 				sl->insert(key, value);
 				insert_count.fetch_add(1);
 			}
@@ -289,7 +291,7 @@ TEST_F(ConcurrentSkipListTest, ConcurrentRemove) {
 
 	// 验证删除操作正常
 	EXPECT_EQ(remove_count.load(), num_threads * removes_per_thread);
-	
+
 	// 验证删除的键确实不存在了
 	for (int i = 0; i < num_threads * removes_per_thread; i++) {
 		auto node = sl->search(i);
@@ -310,17 +312,17 @@ TEST_F(ConcurrentSkipListTest, StressTest) {
 			for (int j = 0; j < operations_per_thread; j++) {
 				int key = i * operations_per_thread + j;
 				int op = rand() % 3;
-				
+
 				switch (op) {
-					case 0: // 插入
-						sl->insert(key, "stress_value_" + std::to_string(key));
-						break;
-					case 1: // 搜索
-						sl->search(key);
-						break;
-					case 2: // 删除
-						sl->remove(key);
-						break;
+				case 0: // 插入
+					sl->insert(key, "stress_value_" + std::to_string(key));
+					break;
+				case 1: // 搜索
+					sl->search(key);
+					break;
+				case 2: // 删除
+					sl->remove(key);
+					break;
 				}
 				total_operations.fetch_add(1);
 			}
@@ -334,7 +336,7 @@ TEST_F(ConcurrentSkipListTest, StressTest) {
 
 	// 验证操作完成
 	EXPECT_EQ(total_operations.load(), num_threads * operations_per_thread);
-	
+
 	// 验证数据结构仍然一致
 	EXPECT_GE(sl->size(), 0); // 大小应该非负
 }
@@ -356,17 +358,17 @@ TEST_F(ConcurrentSkipListTest, DataConsistency) {
 			for (int j = 0; j < operations_per_thread; j++) {
 				int key = (i * operations_per_thread + j) % 200;
 				int op = rand() % 3;
-				
+
 				switch (op) {
-					case 0: // 插入
-						sl->insert(key, "thread_" + std::to_string(i) + "_" + std::to_string(j));
-						break;
-					case 1: // 搜索
-						sl->search(key);
-						break;
-					case 2: // 删除
-						sl->remove(key);
-						break;
+				case 0: // 插入
+					sl->insert(key, "thread_" + std::to_string(i) + "_" + std::to_string(j));
+					break;
+				case 1: // 搜索
+					sl->search(key);
+					break;
+				case 2: // 删除
+					sl->remove(key);
+					break;
 				}
 			}
 		});
@@ -381,7 +383,7 @@ TEST_F(ConcurrentSkipListTest, DataConsistency) {
 	// 1. 检查size()方法是否正常工作
 	int final_size = sl->size();
 	EXPECT_GE(final_size, 0);
-	
+
 	// 2. 检查display()方法是否正常工作（不应该崩溃）
 	EXPECT_NO_THROW(sl->display());
 }
