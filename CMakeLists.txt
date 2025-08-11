@@ -33,7 +33,11 @@ target_compile_features(skiplist INTERFACE cxx_std_17)
 
 # 示例程序
 add_executable(skiplist_example examples/main.cpp)
-target_link_libraries(skiplist_example skiplist)
+target_link_libraries(skiplist_example skiplist pthread)
+
+# 性能测试程序
+add_executable(performance_test examples/performance_comparison.cpp)
+target_link_libraries(performance_test skiplist pthread)
 
 # 测试选项
 option(BUILD_TESTS "Build tests" ON)

@@ -3,6 +3,9 @@
 
 #include <cstdlib>
 #include <iostream>
+#include <mutex>
+#include <shared_mutex>
+#include <atomic>
 
 #include "node.hpp"
 
@@ -13,8 +16,9 @@ class SkipList {
 private:
 	int maxLevel;
 	float p;
-	int currentLevel;
+	std::atomic<int> currentLevel;  // 使用原子操作
 	Node<K, V>* header;
+	mutable std::shared_mutex rw_mutex;  // 读写锁，保护整个数据结构
 
 public:
 	SkipList(int maxLvl, float prob = 0.5);
@@ -31,6 +35,9 @@ public:
 	void remove(K key);
 
 	void display();
+	
+	// 新增：获取skiplist大小的方法
+	int size() const;
 };
 
 template <typename K, typename V>
@@ -67,10 +74,12 @@ Node<K, V>* SkipList<K, V>::createNode(K key, V value, int level) {
 
 template <typename K, typename V>
 void SkipList<K, V>::insert(K key, V value) {
+	std::unique_lock<std::shared_mutex> lock(rw_mutex);  // 写锁，独占访问
+	
 	std::vector<Node<K, V>*> update(maxLevel + 1, nullptr);
 	Node<K, V>* current = header;
 
-	for (int i = currentLevel; i >= 0; i--) {
+	for (int i = currentLevel.load(); i >= 0; i--) {
 		while (current->forward[i] != nullptr && current->forward[i]->key < key) {
 			current = current->forward[i];
 		}
@@ -80,18 +89,18 @@ void SkipList<K, V>::insert(K key, V value) {
 	current = current->forward[0];
 
 	if (current != nullptr && current->key == key) {
-		std::cout << "Key " << " already exists. Insertion failed." << std::endl;
+		std::cout << "Key " << key << " already exists. Insertion failed." << std::endl;
 		return;
 	}
 
 	int randomLvl = getRandomLevel();
 
-	if (randomLvl > currentLevel) {
-		for (int i = currentLevel + 1; i <= randomLvl; i++) {
+	if (randomLvl > currentLevel.load()) {
+		for (int i = currentLevel.load() + 1; i <= randomLvl; i++) {
 			update[i] = header;
 		}
 
-		currentLevel = randomLvl;
+		currentLevel.store(randomLvl);
 	}
 
 	Node<K, V>* newNode = createNode(key, value, randomLvl);
@@ -106,12 +115,14 @@ void SkipList<K, V>::insert(K key, V value) {
 
 template <typename K, typename V>
 void SkipList<K, V>::remove(K key) {
+	std::unique_lock<std::shared_mutex> lock(rw_mutex);  // 写锁，独占访问
+	
 	// 寻找各层的前驱节点
 	std::vector<Node<K, V>*> update(maxLevel + 1, nullptr);
 	Node<K, V>* current = header;
 
 	// 从当前最高层开始往下找
-	for (int i = currentLevel; i >= 0; i--) {
+	for (int i = currentLevel.load(); i >= 0; i--) {
 		while (current->forward[i] != nullptr && current->forward[i]->key < key) {
 			current = current->forward[i];
 		}
@@ -124,7 +135,7 @@ void SkipList<K, V>::remove(K key) {
 	// 检查节点是否存在，如果存在则执行删除
 	if (current != nullptr && current->key == key) {
 		// 从最底层开始，逐层解除链接
-		for (int i = 0; i <= currentLevel; i++) {
+		for (int i = 0; i <= currentLevel.load(); i++) {
 			// 如果在第 i 层，前驱节点的下一个节点不是要删的节点，
 			// 说明在更高层，这个节点已经不存在了，可以直接停止
 			if (update[i]->forward[i] != current) {
@@ -139,8 +150,8 @@ void SkipList<K, V>::remove(K key) {
 
 		// 清理工作：更新 currentLevel
 		// 检查删除后，最高层是否变空了
-		while (currentLevel > 0 && header->forward[currentLevel] == nullptr) {
-			currentLevel--;
+		while (currentLevel.load() > 0 && header->forward[currentLevel.load()] == nullptr) {
+			currentLevel.fetch_sub(1);
 		}
 
 		std::cout << "Successfully deleted key " << key << std::endl;
@@ -151,9 +162,11 @@ void SkipList<K, V>::remove(K key) {
 
 template <typename K, typename V>
 Node<K, V>* SkipList<K, V>::search(K key) {
+	std::shared_lock<std::shared_mutex> lock(rw_mutex);  // 读锁，允许多个线程同时读取
+	
 	Node<K, V>* current = header;
 
-	for (int i = currentLevel; i >= 0; i--) {
+	for (int i = currentLevel.load(); i >= 0; i--) {
 		while (current->forward[i] != nullptr && current->forward[i]->key < key) {
 			current = current->forward[i];
 		}
@@ -175,8 +188,10 @@ Node<K, V>* SkipList<K, V>::search(K key) {
 // 显示跳表结构
 template <typename K, typename V>
 void SkipList<K, V>::display() {
+	std::shared_lock<std::shared_mutex> lock(rw_mutex);  // 读锁，允许多个线程同时读取
+	
 	std::cout << "\n***** Skip List *****\n";
-	for (int i = currentLevel; i >= 0; i--) {
+	for (int i = currentLevel.load(); i >= 0; i--) {
 		Node<K, V>* node = header->forward[i];
 		std::cout << "Level " << i << ": ";
 		while (node != nullptr) {
@@ -185,6 +200,21 @@ void SkipList<K, V>::display() {
 		}
 		std::cout << std::endl;
 	}
+}
+
+template <typename K, typename V>
+int SkipList<K, V>::size() const {
+	std::shared_lock<std::shared_mutex> lock(rw_mutex);  // 读锁
+	
+	int count = 0;
+	Node<K, V>* current = header->forward[0];
+	
+	while (current != nullptr) {
+		count++;
+		current = current->forward[0];
+	}
+	
+	return count;
 }
 
 } // namespace skiplist
